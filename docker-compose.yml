@@ -1,0 +1,80 @@
+version: "3.8"
+
+services:
+  # MongoDB Database
+  # MySQL Database
+  mysql:
+    image: mysql:8
+    container_name: showtime-mysql
+    restart: unless-stopped
+    ports:
+      - "3308:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password123}
+      MYSQL_DATABASE: ${DB_NAME:-showtime_hub}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - showtime-network
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Backend Server
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    container_name: showtime-server
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD:-password123}
+      DB_NAME: ${DB_NAME:-showtime_hub}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      CLIENT_URL: http://localhost:8081
+      TMDB_API_KEY: ${TMDB_API_KEY}
+    volumes:
+      - ./server/src:/app/src:ro
+      - ./server/logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - showtime-network
+
+  # Frontend (Development)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: showtime-frontend
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    volumes:
+      - ./src:/app/src:ro
+      - ./index.html:/app/index.html:ro
+    depends_on:
+      - server
+    networks:
+      - showtime-network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  showtime-network:
+    driver: bridge

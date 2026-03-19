@@ -1,0 +1,9 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+npx lint-staged
+
+
+#both files are simple shell scripts they run commandds automatically when git events happend
+
+

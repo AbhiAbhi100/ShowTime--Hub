@@ -1,0 +1,46 @@
+{
+  "status": 200,
+  "data": {
+    "Status": 0,
+    "TC": false,
+    "RD": true,
+    "RA": true,
+    "AD": true,
+    "CD": false,
+    "Question": [
+      {
+        "name": "api.themoviedb.org.",
+        "type": 1
+      }
+    ],
+    "Answer": [
+      {
+        "name": "api.themoviedb.org.",
+        "type": 1,
+        "TTL": 60,
+        "data": "3.169.71.54"
+      },
+      {
+        "name": "api.themoviedb.org.",
+        "type": 1,
+        "TTL": 60,
+        "data": "3.169.71.55"
+      },
+      {
+        "name": "api.themoviedb.org.",
+        "type": 1,
+        "TTL": 60,
+        "data": "3.169.71.31"
+      },
+      {
+        "name": "api.themoviedb.org.",
+        "type": 1,
+        "TTL": 60,
+        "data": "3.169.71.28"
+      }
+    ],
+    "Comment": "Response from 205.251.195.10."
+  },
+  "resolvedIp": "3.169.71.54",
+  "requestError": "Invalid IP address: undefined"
+}

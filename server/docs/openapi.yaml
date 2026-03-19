@@ -1,0 +1,554 @@
+openapi: 3.0.3
+info:
+  title: ShowTime Hub API
+  description: |
+    RESTful API for ShowTime Hub movie booking application.
+
+    ## Authentication
+    Most endpoints require authentication via JWT Bearer token.
+    Include the token in the `Authorization` header:
+    ```
+    Authorization: Bearer <your_token>
+    ```
+
+    ## Rate Limiting
+    - General API: 100 requests per 15 minutes
+    - Auth endpoints: 10 requests per 15 minutes
+
+    ## Response Format
+    All responses follow this envelope:
+    ```json
+    {
+      "success": true/false,
+      "data": {...},
+      "error": { "code": "ERROR_CODE", "message": "Error message" },
+      "meta": { "page": 1, "limit": 20, "total": 100 },
+      "timestamp": "2024-12-25T10:30:00Z"
+    }
+    ```
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@showtimehub.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Development server
+  - url: https://api.showtimehub.com/v1
+    description: Production server
+
+tags:
+  - name: Auth
+    description: Authentication endpoints
+  - name: Movies
+    description: Movie information
+  - name: Shows
+    description: Show timings and availability
+  - name: Bookings
+    description: Ticket booking management
+  - name: Theatres
+    description: Theatre information
+  - name: Payments
+    description: Payment processing
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  minLength: 8
+                  example: Password123
+                fullName:
+                  type: string
+                  example: John Doe
+      responses:
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          description: Email already registered
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /movies/tmdb:
+    get:
+      tags: [Movies]
+      summary: Get movies from TMDB
+      parameters:
+        - name: endpoint
+          in: query
+          schema:
+            type: string
+            enum: [upcoming, now_playing, popular]
+            default: upcoming
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [all, indian, hollywood]
+            default: all
+      responses:
+        "200":
+          description: List of movies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Movie"
+
+  /movies/tmdb/{movieId}:
+    get:
+      tags: [Movies]
+      summary: Get movie details
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Movie details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovieDetails"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /shows/movie/{movieId}:
+    get:
+      tags: [Shows]
+      summary: Get shows for a movie
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: cityId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of shows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Show"
+
+  /bookings:
+    get:
+      tags: [Bookings]
+      summary: Get user's bookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: User's bookings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedBookings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      tags: [Bookings]
+      summary: Create new booking
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookingRequest"
+      responses:
+        "201":
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          description: Seats already booked
+
+  /bookings/{id}/cancel:
+    post:
+      tags: [Bookings]
+      summary: Cancel booking
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Booking cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  refundAmount:
+                    type: number
+        "400":
+          description: Cannot cancel booking
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /payments/create-intent:
+    post:
+      tags: [Payments]
+      summary: Create payment intent
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, bookingDetails]
+              properties:
+                amount:
+                  type: number
+                  minimum: 1
+                bookingDetails:
+                  type: object
+      responses:
+        "200":
+          description: Payment intent created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clientSecret:
+                    type: string
+                  paymentIntentId:
+                    type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    Movie:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        poster:
+          type: string
+          nullable: true
+        language:
+          type: string
+        genre:
+          type: array
+          items:
+            type: string
+        rating:
+          type: number
+        releaseDate:
+          type: string
+          format: date
+
+    MovieDetails:
+      allOf:
+        - $ref: "#/components/schemas/Movie"
+        - type: object
+          properties:
+            banner:
+              type: string
+            duration:
+              type: string
+            description:
+              type: string
+            cast:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  character:
+                    type: string
+                  profile:
+                    type: string
+            director:
+              type: string
+            trailer:
+              type: string
+
+    Show:
+      type: object
+      properties:
+        _id:
+          type: string
+        movieId:
+          type: string
+        theatre:
+          $ref: "#/components/schemas/Theatre"
+        showDate:
+          type: string
+          format: date
+        showTime:
+          type: string
+        priceRegular:
+          type: number
+        pricePremium:
+          type: number
+        priceVip:
+          type: number
+        availableSeats:
+          type: integer
+        bookedSeats:
+          type: array
+          items:
+            type: string
+
+    Theatre:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        location:
+          type: string
+        city:
+          type: object
+          properties:
+            _id:
+              type: string
+            name:
+              type: string
+
+    CreateBookingRequest:
+      type: object
+      required:
+        - movieId
+        - movieTitle
+        - theatreName
+        - showTime
+        - showDate
+        - seats
+        - totalAmount
+      properties:
+        movieId:
+          type: string
+        movieTitle:
+          type: string
+        moviePoster:
+          type: string
+        theatreName:
+          type: string
+        theatreLocation:
+          type: string
+        showTime:
+          type: string
+        showDate:
+          type: string
+          format: date
+        seats:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        totalAmount:
+          type: number
+          minimum: 0
+        showId:
+          type: string
+
+    BookingResponse:
+      type: object
+      properties:
+        bookingId:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, cancelled, completed]
+        seats:
+          type: array
+          items:
+            type: string
+        totalAmount:
+          type: number
+
+    PaginatedBookings:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/BookingResponse"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                email:
+                  type: string
+                fullName:
+                  type: string
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
