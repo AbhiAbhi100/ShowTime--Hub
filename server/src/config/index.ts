@@ -62,6 +62,9 @@ export const config = {
 
   // Logging
   logLevel: process.env.LOG_LEVEL || "info",
+
+  // Gemini AI
+  geminiApiKey: process.env.GEMINI_API_KEY || "",
 };
 
 export default config;

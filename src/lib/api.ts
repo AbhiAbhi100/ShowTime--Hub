@@ -215,4 +215,10 @@ export const adminApi = {
     api.put(`/admin/featured-movies/${id}`, data),
 };
 
+// AI API
+export const aiApi = {
+  chat: (message: string, history: any[]) =>
+    api.post("/ai/chat", { message, history }),
+};
+
 export default api;

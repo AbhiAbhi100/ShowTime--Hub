@@ -538,6 +538,10 @@ router.delete("/:id", authenticate, adminOnly, async (req: Request, res: Respons
       return res.status(404).json({ error: "Show not found" });
     }
     
+    // Delete child records to prevent foreign key constraint errors
+    await SeatLock.destroy({ where: { showId: req.params.id } });
+    await Booking.destroy({ where: { showId: req.params.id } });
+
     await show.destroy();
 
     res.json({ message: "Show deleted successfully" });

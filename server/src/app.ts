@@ -27,6 +27,7 @@ import bookingRoutes from "./routes/bookings";
 import cityRoutes from "./routes/cities";
 import adminRoutes from "./routes/admin";
 import profileRoutes from "./routes/profile";
+import aiRoutes from "./routes/ai.routes";
 
 const app = express();
 
@@ -126,6 +127,7 @@ app.use("/api/v1/bookings", bookingRoutes);
 app.use("/api/v1/cities", cityRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/profile", profileRoutes);
+app.use("/api/v1/ai", aiRoutes);
 
 // Backward compatible routes (without version)
 app.use("/api/auth", authRoutes);
@@ -136,6 +138,7 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/cities", cityRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/ai", aiRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

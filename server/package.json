@@ -19,6 +19,7 @@
     "prepare": "cd .. && husky install server/.husky"
   },
   "dependencies": {
+    "@google/genai": "^2.0.1",
     "@types/node-cron": "^3.0.11",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
