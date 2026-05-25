@@ -33,7 +33,7 @@ COPY --from=server-builder --chown=nodejs:nodejs /app/server/package*.json ./
 COPY --from=frontend-builder --chown=nodejs:nodejs /app/dist ./public
 
 # Install production dependencies only
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production --ignore-scripts && npm cache clean --force
 
 # Switch to non-root user
 USER nodejs
