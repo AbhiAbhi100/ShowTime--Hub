@@ -3,22 +3,34 @@ import config from "./index";
 import logger from "../utils/logger";
 import * as models from "../models";
 
-const sequelize = new Sequelize({
-  dialect: "mysql",
-  host: config.mysql.host,
-  port: config.mysql.port,
-  username: config.mysql.user,
-  password: config.mysql.password,
-  database: config.mysql.database,
-  logging: (msg) => logger.debug(msg), // Use our logger for SQL queries
-  models: Object.values(models), // Load models explicitly
-  pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
-  },
-});
+const sequelize = (process.env.MYSQL_URL || process.env.DATABASE_URL)
+  ? new Sequelize(process.env.MYSQL_URL || process.env.DATABASE_URL!, {
+      dialect: "mysql",
+      logging: (msg) => logger.debug(msg),
+      models: Object.values(models),
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000,
+      },
+    })
+  : new Sequelize({
+      dialect: "mysql",
+      host: config.mysql.host,
+      port: config.mysql.port,
+      username: config.mysql.user,
+      password: config.mysql.password,
+      database: config.mysql.database,
+      logging: (msg) => logger.debug(msg),
+      models: Object.values(models),
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000,
+      },
+    });
 
 export const connectDatabase = async () => {
   try {
