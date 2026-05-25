@@ -33,19 +33,25 @@ const sequelize = (process.env.MYSQL_URL || process.env.DATABASE_URL)
     });
 
 export const connectDatabase = async () => {
-  try {
-    await sequelize.authenticate();
-    logger.info("✅ Connected to MySQL Database");
-    
-    // Sync models (alter: true updates schema without dropping data if possible)
-    // In production, you might want to use migrations instead of sync
-    // Sync models
-    // Changed to default sync (no alter) to avoid "Too many keys" error on startups
-    await sequelize.sync();
-    logger.info("✅ Database models synchronized");
-  } catch (error) {
-    logger.error("❌ Unable to connect to the database:", error);
-    process.exit(1);
+  let retries = 5;
+  while (retries > 0) {
+    try {
+      await sequelize.authenticate();
+      logger.info("✅ Connected to MySQL Database");
+      
+      // Sync models
+      await sequelize.sync();
+      logger.info("✅ Database models synchronized");
+      return;
+    } catch (error) {
+      retries--;
+      logger.error(`❌ Unable to connect to the database (Retries left: ${retries}):`, error);
+      if (retries === 0) {
+        process.exit(1);
+      }
+      // Wait 5 seconds before retrying
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
   }
 };
 
