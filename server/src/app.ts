@@ -140,6 +140,23 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/ai", aiRoutes);
 
+// Serve static files from the React frontend app
+import path from "path";
+const publicPath = path.join(__dirname, "../public");
+app.use(express.static(publicPath));
+
+// Wildcard route to serve React's index.html for SPA routing
+app.get("*", (req, res, next) => {
+  if (req.url.startsWith("/api") || req.url.startsWith("/api-docs")) {
+    return next();
+  }
+  res.sendFile(path.join(publicPath, "index.html"), (err) => {
+    if (err) {
+      next();
+    }
+  });
+});
+
 // 404 handler
 app.use(notFoundHandler);
 
