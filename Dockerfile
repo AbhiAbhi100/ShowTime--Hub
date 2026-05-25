@@ -35,6 +35,9 @@ COPY --from=frontend-builder --chown=nodejs:nodejs /app/dist ./public
 # Install production dependencies only
 RUN npm ci --only=production --ignore-scripts && npm cache clean --force
 
+# Create logs directory and set proper ownership
+RUN mkdir -p /app/logs && chown -R nodejs:nodejs /app/logs
+
 # Switch to non-root user
 USER nodejs
 
