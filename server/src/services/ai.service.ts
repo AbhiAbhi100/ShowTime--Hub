@@ -13,7 +13,7 @@ Your job is to help users find movies, get details, and book tickets.
 - If the user says they want to book a movie, use 'initiate_booking' and provide the movie title. Do not make up a booking link yourself.
 - Keep your answers concise, natural, and conversational in Hinglish or English as the user prefers.`;
 
-const tools = [{
+const tools: any = [{
   functionDeclarations: [
     {
       name: "find_movies",
@@ -75,7 +75,7 @@ export class AIService {
       }
 
       // Convert frontend history format to Gemini format
-      const contents = history.map(msg => ({
+      const contents: any[] = history.map(msg => ({
         role: msg.role === 'ai' ? 'model' : 'user',
         parts: [{ text: msg.content }]
       }));
@@ -98,7 +98,7 @@ export class AIService {
         const functionCall = response.functionCalls[0];
         const args = functionCall.args;
         let functionResponseData: any = {};
-        let actionPayload = null;
+        let actionPayload: any = null;
 
         if (functionCall.name === "find_movies") {
           functionResponseData = await this.executeFindMovies(args);
@@ -113,8 +113,10 @@ export class AIService {
         }
 
         // Send the function response back to Gemini to get the final natural language answer
-        const followUpContents = [...contents];
-        followUpContents.push(response.candidates[0].content); // Add assistant's tool call
+        const followUpContents: any[] = [...contents];
+        if (response.candidates && response.candidates[0]) {
+          followUpContents.push(response.candidates[0].content); // Add assistant's tool call
+        }
         followUpContents.push({
           role: 'user',
           parts: [{
